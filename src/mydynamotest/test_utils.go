@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-//Creats a command that will start Dynamo nodes based on the config file specified
+//Creates a command that will start Dynamo nodes based on the config file specified
 // by config_path
 func InitDynamoServer(config_path string) *exec.Cmd {
 	serverCmd := exec.Command("DynamoCoordinator", config_path)
@@ -47,6 +47,11 @@ func PutFreshContext(key string, value []byte) mydynamo.PutArgs {
 	return mydynamo.NewPutArgs(key, mydynamo.NewContext(mydynamo.NewVectorClock()), value)
 }
 
+//Creates a PutArgs with the associated key/value and a vector clock
+func PutWithContext(key string, value []byte, ctx mydynamo.Context) mydynamo.PutArgs {
+	return mydynamo.NewPutArgs(key, ctx, value)
+}
+
 //Tests if the contents of two byte arrays are equal
 func valuesEqual(v1 []byte, v2 []byte) bool {
 	if len(v1) != len(v2) {
@@ -58,4 +63,14 @@ func valuesEqual(v1 []byte, v2 []byte) bool {
 		}
 	}
 	return true
+}
+
+func GetAndCombineClocks(value mydynamo.DynamoResult) mydynamo.VectorClock {
+	vecClockList := make([]mydynamo.VectorClock, 0)
+	for i := 0; i < len(value.EntryList); i++ {
+		vecClockList = append(vecClockList, value.EntryList[i].Context.Clock)
+	}
+	clock := mydynamo.NewVectorClock()
+	clock.Combine(vecClockList)
+	return clock
 }

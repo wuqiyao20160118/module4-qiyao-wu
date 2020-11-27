@@ -17,7 +17,7 @@
 # 
 # 3. Voila
 
-# Clean up the exisitng binaries in current directory
+# Clean up the existing binaries in current directory
 rm -rf ./bin
 
 

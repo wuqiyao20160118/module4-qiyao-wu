@@ -46,7 +46,7 @@ func main() {
 	fmt.Println("Done loading configurations")
 
 	//keep a list of servers so we can communicate with them
-	serverList := make([]mydynamo.DynamoServer, 0)
+	serverList := make([]*mydynamo.DynamoServer, 0)
 
 	//spin up a dynamo cluster
 	dynamoNodeList := make([]mydynamo.DynamoNode, 0)
@@ -58,11 +58,11 @@ func main() {
 
 		//Create a server instance
 		serverInstance := mydynamo.NewDynamoServer(w_value, r_value, "localhost", strconv.Itoa(serverPort+idx), strconv.Itoa(idx))
-		serverList = append(serverList, serverInstance)
+		serverList = append(serverList, &serverInstance)
 
 		//Create an anonymous function in a goroutine that starts the server
 		go func() {
-			log.Fatal(mydynamo.ServeDynamoServer(serverInstance))
+			log.Fatal(mydynamo.ServeDynamoServer(&serverInstance))
 			wg.Done()
 		}()
 		nodeInfo := mydynamo.DynamoNode{
