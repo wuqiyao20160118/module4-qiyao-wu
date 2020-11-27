@@ -485,7 +485,7 @@ func TestAdvancedPut(t *testing.T) {
 	}
 	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bcdefg")) {
 		t.Fail()
-		t.Logf("clientInstance2: Failed to get value, index: %d", 1)
+		t.Logf("clientInstance2: Failed to get value, index: %d", 2)
 	}
 	ctxMap2["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
 
@@ -511,19 +511,19 @@ func TestAdvancedPut(t *testing.T) {
 	gotValuePtr = clientInstance2.Get("s3")
 	if gotValuePtr == nil {
 		t.Fail()
-		t.Logf("clientInstance3 Get Test Crash: Returned nil")
+		t.Logf("clientInstance2 Get Test Crash: Returned nil")
 	}
 	gotValue = *gotValuePtr
 	if len(gotValue.EntryList) != 1 {
 		t.Fail()
-		t.Logf("clientInstance3: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
 		for _, content := range gotValue.EntryList {
 			t.Logf("%s", string(content.Value))
 		}
 	}
 	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
 		t.Fail()
-		t.Logf("clientInstance3: Failed to get value, index: %d", 0)
+		t.Logf("clientInstance2: Failed to get value, index: %d", 0)
 	}
 	ctxMap2["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
 	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance2 Test One Done <<<<<<<<<<<<<<<<<<<<<<<<")
@@ -552,7 +552,7 @@ func TestAdvancedPut(t *testing.T) {
 	}
 	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bc")) {
 		t.Fail()
-		t.Logf("clientInstance3: Failed to get value, index: %d", 1)
+		t.Logf("clientInstance3: Failed to get value, index: %d", 2)
 	}
 	ctxMap3["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
 
@@ -636,11 +636,11 @@ func TestAdvancedPut(t *testing.T) {
 	}
 	if !valuesEqual(gotValue.EntryList[0].Value, []byte("ac")) {
 		t.Fail()
-		t.Logf("clientInstance4: Failed to get value, index: %d", 0)
+		t.Logf("clientInstance5: Failed to get value, index: %d", 0)
 	}
 	if !valuesEqual(gotValue.EntryList[1].Value, []byte("bcdefg")) {
 		t.Fail()
-		t.Logf("clientInstance4: Failed to get value, index: %d", 1)
+		t.Logf("clientInstance5: Failed to get value, index: %d", 1)
 	}
 	ctxMap5["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
 
@@ -663,6 +663,520 @@ func TestAdvancedPut(t *testing.T) {
 	}
 	ctxMap5["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
 	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance5 Test One Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	clientInstance2.Gossip()
+	log.Println("======================= clientInstance1 Test Two Begins ==========================")
+	gotValuePtr = clientInstance1.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 3 {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value. Expected length: %d, but Get: %d", 3, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 2)
+	}
+	ctxMap1["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance1.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 0)
+	}
+	ctxMap1["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance1.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 0)
+	}
+	ctxMap1["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance1 Test Two Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	log.Println("======================= clientInstance2 Test Two Begins ==========================")
+	gotValuePtr = clientInstance2.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance2 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 3 {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 3, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 2)
+	}
+	ctxMap2["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance2.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance2 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 0)
+	}
+	ctxMap2["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance2.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance2 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 0)
+	}
+	ctxMap2["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance2 Test Two Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	log.Println("======================= clientInstance3 Test Two Begins ==========================")
+	gotValuePtr = clientInstance3.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance3 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 4 {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value. Expected length: %d, but Get: %d", 4, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("ac")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 2)
+	}
+	if !valuesEqual(gotValue.EntryList[3].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 3)
+	}
+	ctxMap3["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance3.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance3 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 0)
+	}
+	ctxMap3["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance3.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance3 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 0)
+	}
+	ctxMap3["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance3 Test Two Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	log.Println("======================= clientInstance4 Test Two Begins ==========================")
+	gotValuePtr = clientInstance4.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance4 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 4 {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value. Expected length: %d, but Get: %d", 4, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("ac")) {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value, index: %d", 2)
+	}
+	if !valuesEqual(gotValue.EntryList[3].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value, index: %d", 3)
+	}
+	ctxMap4["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance4.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance4 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value, index: %d", 0)
+	}
+	ctxMap4["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance4.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance4 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance4: Failed to get value, index: %d", 0)
+	}
+	ctxMap4["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance4 Test Two Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	log.Println("======================= clientInstance5 Test Two Begins ==========================")
+	gotValuePtr = clientInstance5.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance5 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 4 {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value. Expected length: %d, but Get: %d", 4, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("ac")) {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value, index: %d", 2)
+	}
+	if !valuesEqual(gotValue.EntryList[3].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value, index: %d", 3)
+	}
+	ctxMap5["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance5.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance5 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value, index: %d", 0)
+	}
+	ctxMap5["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance5.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance5 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance5: Failed to get value, index: %d", 0)
+	}
+	ctxMap5["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance5 Test Two Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	wg = new(sync.WaitGroup)
+	wg.Add(5)
+	go func() {
+		clientInstance1.Gossip()
+		wg.Done()
+	}()
+	go func() {
+		clientInstance2.Gossip()
+		wg.Done()
+	}()
+	go func() {
+		clientInstance3.Gossip()
+		wg.Done()
+	}()
+	go func() {
+		clientInstance4.Gossip()
+		wg.Done()
+	}()
+	go func() {
+		clientInstance5.Gossip()
+		wg.Done()
+	}()
+	wg.Wait()
+
+	log.Println("======================= clientInstance1 Test Three Begins ==========================")
+	gotValuePtr = clientInstance1.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 4 {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value. Expected length: %d, but Get: %d", 4, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("ac")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 2)
+	}
+	if !valuesEqual(gotValue.EntryList[3].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 3)
+	}
+	ctxMap1["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance1.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance3: Failed to get value, index: %d", 0)
+	}
+	ctxMap1["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance1.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 0)
+	}
+	ctxMap1["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance1 Test Three Done <<<<<<<<<<<<<<<<<<<<<<<<")
+
+	log.Println("======================= clientInstance2 Test Three Begins ==========================")
+	gotValuePtr = clientInstance2.Get("s1")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 4 {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 4, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("abc")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 0)
+	}
+	if !valuesEqual(gotValue.EntryList[1].Value, []byte("ac")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 1)
+	}
+	if !valuesEqual(gotValue.EntryList[2].Value, []byte("bc")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 2)
+	}
+	if !valuesEqual(gotValue.EntryList[3].Value, []byte("bcdefg")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 3)
+	}
+	ctxMap2["s1"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance2.Get("s2")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("123")) {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value, index: %d", 0)
+	}
+	ctxMap2["s2"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+
+	gotValuePtr = clientInstance2.Get("s3")
+	if gotValuePtr == nil {
+		t.Fail()
+		t.Logf("clientInstance1 Get Test Crash: Returned nil")
+	}
+	gotValue = *gotValuePtr
+	if len(gotValue.EntryList) != 1 {
+		t.Fail()
+		t.Logf("clientInstance2: Failed to get value. Expected length: %d, but Get: %d", 1, len(gotValue.EntryList))
+		for _, content := range gotValue.EntryList {
+			t.Logf("%s", string(content.Value))
+		}
+	}
+	if !valuesEqual(gotValue.EntryList[0].Value, []byte("xxxxxxx")) {
+		t.Fail()
+		t.Logf("clientInstance1: Failed to get value, index: %d", 0)
+	}
+	ctxMap2["s3"] = mydynamo.Context{Clock: GetAndCombineClocks(gotValue)}
+	log.Println(">>>>>>>>>>>>>>>>>>>>>> clientInstance2 Test Three Done <<<<<<<<<<<<<<<<<<<<<<<<")
 }
 
 // W: 3, R: 3

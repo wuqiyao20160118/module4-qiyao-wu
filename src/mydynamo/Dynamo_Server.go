@@ -50,10 +50,16 @@ func (s *DynamoServer) Gossip(_ Empty, _ *Empty) error {
 		}
 
 		s.mu.Lock()
-
 		gossipMap := s.futureGossip[i]
+		s.mu.Unlock()
+
 		toDeleteKey := make([]string, 0)
 		for key, entryList := range gossipMap {
+			log.Printf("Gossip Map for %s->%s, key %s is: ", s.selfNode.Address+":"+s.selfNode.Port, s.preferenceList[i].Address+":"+s.preferenceList[i].Port, key)
+			for k := 0; k < len(entryList); k++ {
+				log.Printf("%s\t", string(entryList[k].Value))
+			}
+			log.Println()
 			batchArgs := BatchReplicateArgs{
 				EntryList: entryList,
 				Key:       key,
@@ -74,11 +80,11 @@ func (s *DynamoServer) Gossip(_ Empty, _ *Empty) error {
 			}
 		}
 
+		s.mu.Lock()
 		// delete the successfully gossip key/value pairs
 		for _, key := range toDeleteKey {
-			delete(gossipMap, key)
+			delete(s.futureGossip[i], key)
 		}
-
 		s.mu.Unlock()
 	}
 
@@ -315,6 +321,50 @@ func (s *DynamoServer) Replicate(value PutArgs, result *bool) error {
 			*result = true
 		}
 	}
+
+	if *result {
+		//Assume all other nodes need this PutArgs
+		//Can be optimized!
+		log.Println("Begin storing gossipMap in Replicate RPC")
+		for i := 1; i < len(s.preferenceList); i++ {
+			gossipMap := s.futureGossip[i]
+			putList, ok := gossipMap[key]
+			if !ok {
+				arg := make([]ObjectEntry, 0)
+				arg = append(arg, ObjectEntry{
+					Context: ctxVectorClock,
+					Value:   val,
+				})
+				gossipMap[key] = arg
+			} else {
+				// update new data to be replicated (GC for old version)
+				suc := true
+				removeIndex := make([]int, 0)
+				for idx, putArg := range putList {
+					if putArg.Context.Clock.LessThan(ctxVectorClock.Clock) || putArg.Context.Clock.Equals(ctxVectorClock.Clock) {
+						removeIndex = append(removeIndex, idx)
+					} else if ctxVectorClock.Clock.LessThan(putArg.Context.Clock) {
+						suc = false
+						break
+					}
+				}
+
+				if suc {
+					length := len(removeIndex)
+					newList := putList
+					for j := 0; j < length; j++ {
+						newList = remove(putList, removeIndex[j]-j)
+					}
+					newList = append(newList, ObjectEntry{
+						Context: ctxVectorClock,
+						Value:   val,
+					})
+					gossipMap[key] = newList
+				}
+			}
+		}
+		log.Println("Storing gossipMap in Replicate RPC done.")
+	}
 	s.mu.Unlock()
 
 	return nil
@@ -344,10 +394,11 @@ func (s *DynamoServer) BatchReplicate(value BatchReplicateArgs, result *bool) er
 			val := entryList[i].Value
 
 			removeIndex := make([]int, 0)
+			kvStore = s.store[key]
 			for j := 0; j < len(kvStore); j++ {
-				if kvStore[j].Context.Clock.LessThan(ctxVectorClock.Clock) {
+				if kvStore[j].Context.Clock.LessThan(ctxVectorClock.Clock) || ctxVectorClock.Clock.Equals(kvStore[j].Context.Clock) {
 					removeIndex = append(removeIndex, j)
-				} else if ctxVectorClock.Clock.LessThan(kvStore[j].Context.Clock) || ctxVectorClock.Clock.Equals(kvStore[j].Context.Clock) {
+				} else if ctxVectorClock.Clock.LessThan(kvStore[j].Context.Clock) {
 					success = false
 					break
 				}
@@ -355,7 +406,7 @@ func (s *DynamoServer) BatchReplicate(value BatchReplicateArgs, result *bool) er
 
 			if success {
 				length := len(removeIndex)
-				newEntryList := kvStore
+				newEntryList := s.store[key]
 				for j := 0; j < length; j++ {
 					newEntryList = remove(kvStore, removeIndex[j]-j)
 				}
