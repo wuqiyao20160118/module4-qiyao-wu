@@ -15,7 +15,7 @@ const CONFIG_FILE_INDEX int = 1
 //configuration constant labels
 const EX_USAGE int = 2
 const EX_CONFIG int = 3
-const MYDYNAMO string = "mydynamo"
+const MYDYNAMO string = "mydynamo2"
 const SERVER_PORT string = "starting_port"
 const W_VALUE string = "w_value"
 const R_VALUE string = "r_value"

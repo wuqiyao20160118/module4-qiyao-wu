@@ -21,14 +21,14 @@ type DynamoServer struct {
 	nodeID         string       //ID of this node
 	isAlive        bool         //false means a crash state
 	store          map[string][]ObjectEntry
-	futureGossip   []map[string][]ObjectEntry  // key: key of PutArgs  value: PutArgs
+	futureGossip   []map[string][]ObjectEntry // key: key of PutArgs  value: PutArgs
 	mu             sync.Mutex
 }
 
 func (s *DynamoServer) SendPreferenceList(incomingList []DynamoNode, _ *Empty) error {
 	s.preferenceList = incomingList
 	s.futureGossip = make([]map[string][]ObjectEntry, len(s.preferenceList))
-	for i := 0; i<len(s.futureGossip); i++ {
+	for i := 0; i < len(s.futureGossip); i++ {
 		s.futureGossip[i] = make(map[string][]ObjectEntry)
 	}
 	return nil
@@ -43,8 +43,8 @@ func (s *DynamoServer) Gossip(_ Empty, _ *Empty) error {
 
 	for i := 1; i < len(s.preferenceList); i++ {
 		log.Println("---------------------------")
-		log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port)
-		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port)
+		log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
+		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		if e != nil {
 			continue
 		}
@@ -56,11 +56,11 @@ func (s *DynamoServer) Gossip(_ Empty, _ *Empty) error {
 		for key, entryList := range gossipMap {
 			batchArgs := BatchReplicateArgs{
 				EntryList: entryList,
-				Key: key,
+				Key:       key,
 			}
 			res := true
 			// res return false if the remote node crashes currently
-			log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate for key: %s...\n", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port, key)
+			log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate for key: %s...\n", s.preferenceList[i].Address+":"+s.preferenceList[i].Port, key)
 			e = rpcConn.Call("MyDynamo.BatchReplicate", batchArgs, &res)
 			if e == nil {
 				toDeleteKey = append(toDeleteKey, key)
@@ -114,7 +114,7 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 	}
 	log.Println("---------------Put RPC received!---------------")
 
-	var votes int = 0
+	var votes int = 1
 	forwardValue := value
 
 	success := true
@@ -128,7 +128,7 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 		initialList := make([]ObjectEntry, 0)
 		s.store[key] = append(initialList, ObjectEntry{
 			Context: ctxVectorClock,
-			Value: val,
+			Value:   val,
 		})
 		forwardValue.Context = ctxVectorClock
 	} else {
@@ -152,11 +152,10 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 			ctxVectorClock.Clock.Increment(s.nodeID)
 			newEntryList = append(newEntryList, ObjectEntry{
 				Context: ctxVectorClock,
-				Value: val,
+				Value:   val,
 			})
 			s.store[key] = newEntryList
 			forwardValue.Context = ctxVectorClock
-			votes += 1
 		}
 	}
 	s.mu.Unlock()
@@ -171,20 +170,21 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 			log.Println("---------------------------")
 			log.Println("Preparing to self-checking votes...")
 			if votes >= s.wValue {
-				for j := i+1; j < len(s.preferenceList); j++ {
+				for j := i + 1; j < len(s.preferenceList); j++ {
 					gossipStoreIdx = append(gossipStoreIdx, j)
 				}
-				log.Println("RPC Closed because votes are over nWrite!")
+				log.Println("Votes are over nWrite!")
+				break
 			}
-			break
+			continue
 		}
 		log.Println("---------------------------")
-		log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port)
-		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port)
+		log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
+		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		if e != nil {
 			continue
 		}
-		log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate...\n", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port)
+		log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate...\n", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 
 		res := true
 		e = rpcConn.Call("MyDynamo.Replicate", forwardValue, &res)
@@ -193,7 +193,7 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 			votes += 1
 			if votes >= s.wValue {
 				*result = true
-				for j := i+1; j < len(s.preferenceList); j++ {
+				for j := i + 1; j < len(s.preferenceList); j++ {
 					gossipStoreIdx = append(gossipStoreIdx, j)
 				}
 				if rpcConn != nil {
@@ -222,15 +222,18 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 	log.Println("Storing gossip map...")
 	// all nodes that weren't replicated to should be stored
 	// so that a future Gossip operation knows which nodes still need a copy of this data
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	log.Printf("The length of the gossipStoreIdx for %s is %d.\n", s.selfNode.Address+":"+s.selfNode.Port, len(gossipStoreIdx))
 	for _, idx := range gossipStoreIdx {
-		s.mu.Lock()
+		log.Printf("Storing idx: %d\n", idx)
 		gossipMap := s.futureGossip[idx]
 		putList, ok := gossipMap[forwardValue.Key]
 		if !ok {
 			arg := make([]ObjectEntry, 0)
 			arg = append(arg, ObjectEntry{
 				Context: forwardValue.Context,
-				Value: forwardValue.Value,
+				Value:   forwardValue.Value,
 			})
 			gossipMap[forwardValue.Key] = arg
 		} else {
@@ -254,12 +257,12 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 				}
 				newList = append(newList, ObjectEntry{
 					Context: forwardValue.Context,
-					Value: val,
+					Value:   val,
 				})
 				gossipMap[forwardValue.Key] = newList
 			}
 		}
-		s.mu.Unlock()
+		log.Printf("Storing idx: %d done.\n", idx)
 	}
 
 	return nil
@@ -282,7 +285,7 @@ func (s *DynamoServer) Replicate(value PutArgs, result *bool) error {
 		initialList := make([]ObjectEntry, 0)
 		s.store[key] = append(initialList, ObjectEntry{
 			Context: ctxVectorClock,
-			Value: val,
+			Value:   val,
 		})
 		*result = true
 	} else {
@@ -306,7 +309,7 @@ func (s *DynamoServer) Replicate(value PutArgs, result *bool) error {
 
 			newEntryList = append(newEntryList, ObjectEntry{
 				Context: ctxVectorClock,
-				Value: val,
+				Value:   val,
 			})
 			s.store[key] = newEntryList
 			*result = true
@@ -359,7 +362,7 @@ func (s *DynamoServer) BatchReplicate(value BatchReplicateArgs, result *bool) er
 
 				newEntryList = append(newEntryList, ObjectEntry{
 					Context: ctxVectorClock,
-					Value: val,
+					Value:   val,
 				})
 				s.store[key] = newEntryList
 			}
@@ -380,11 +383,14 @@ func (s *DynamoServer) Get(key string, result *DynamoResult) error {
 	allReads := make([]ObjectEntry, 0)
 	// First attempt to read the value from its local key/value store
 	s.mu.Lock()
-	result.EntryList = append(result.EntryList, s.store[key]...)
+	if _, ok := s.store[key]; ok {
+		result.EntryList = append(result.EntryList, s.store[key]...)
+	}
+	s.mu.Unlock()
 
 	// Attempt to read that value from R-1 other nodes
 	for i := 1; i < s.rValue; i++ {
-		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address + ":" + s.preferenceList[i].Port)
+		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		if e != nil {
 			continue
 		}
@@ -411,7 +417,7 @@ func (s *DynamoServer) Get(key string, result *DynamoResult) error {
 			}
 		}
 	}
-	s.mu.Unlock()
+	//s.mu.Unlock()
 
 	// Combine all (context, value) pairs
 	for _, entry := range allReads {
