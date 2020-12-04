@@ -166,6 +166,11 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 	}
 	s.mu.Unlock()
 
+	if !success {
+		*result = false
+		return nil
+	}
+
 	// Attempt to replicate that value to W-1 other nodes
 	// Maybe need set up goroutines here!
 	*result = false
