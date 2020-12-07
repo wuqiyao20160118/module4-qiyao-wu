@@ -537,7 +537,7 @@ func NewDynamoServer(w int, r int, hostAddr string, hostPort string, id string) 
 	}
 }
 
-func ServeDynamoServer(dynamoServer DynamoServer, wg *sync.WaitGroup) error {
+func ServeDynamoServer(dynamoServer DynamoServer) error {
 	rpcServer := rpc.NewServer()
 	e := rpcServer.RegisterName("MyDynamo", &dynamoServer)
 	if e != nil {
@@ -555,8 +555,6 @@ func ServeDynamoServer(dynamoServer DynamoServer, wg *sync.WaitGroup) error {
 
 	log.Println(DYNAMO_SERVER, "Successfully Listening to Target Port ", dynamoServer.selfNode.Address+":"+dynamoServer.selfNode.Port)
 	log.Println(DYNAMO_SERVER, "Serving Server Now")
-
-	wg.Done()
 
 	return http.Serve(l, rpcServer)
 }

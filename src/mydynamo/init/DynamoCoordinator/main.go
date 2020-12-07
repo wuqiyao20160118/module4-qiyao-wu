@@ -55,8 +55,6 @@ func main() {
 	wg := new(sync.WaitGroup)
 	wg.Add(cluster_size)
 
-	wg_init_complete := new(sync.WaitGroup)
-	wg_init_complete.Add(cluster_size)
 	for idx := 0; idx < cluster_size; idx++ {
 
 		//Create a server instance
@@ -65,8 +63,7 @@ func main() {
 
 		//Create an anonymous function in a goroutine that starts the server
 		go func() {
-			log.Fatal(mydynamo.ServeDynamoServer(serverInstance, wg_init_complete))
-			wg.Done()
+			log.Fatal(mydynamo.ServeDynamoServer(serverInstance))
 		}()
 		nodeInfo := mydynamo.DynamoNode{
 			Address: "localhost",
@@ -74,8 +71,6 @@ func main() {
 		}
 		dynamoNodeList = append(dynamoNodeList, nodeInfo)
 	}
-
-	wg_init_complete.Wait()
 
 	//Create a duplicate of dynamoNodeList that we can rotate
 	//so that each node has a distinct preference list
