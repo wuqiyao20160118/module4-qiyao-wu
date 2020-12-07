@@ -22,7 +22,7 @@ type DynamoServer struct {
 	isAlive        bool         //false means a crash state
 	store          map[string][]ObjectEntry
 	futureGossip   []map[string][]ObjectEntry // key: key of PutArgs  value: PutArgs
-	mu             sync.Mutex
+	mu             *sync.Mutex
 }
 
 func (s *DynamoServer) SendPreferenceList(incomingList []DynamoNode, _ *Empty) error {
@@ -42,8 +42,8 @@ func (s *DynamoServer) Gossip(_ Empty, _ *Empty) error {
 	}
 
 	for i := 1; i < len(s.preferenceList); i++ {
-		log.Println("---------------------------")
-		log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
+		//log.Println("---------------------------")
+		//log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		if e != nil {
 			continue
@@ -55,18 +55,18 @@ func (s *DynamoServer) Gossip(_ Empty, _ *Empty) error {
 
 		toDeleteKey := make([]string, 0)
 		for key, entryList := range gossipMap {
-			log.Printf("Gossip Map for %s->%s, key %s is: ", s.selfNode.Address+":"+s.selfNode.Port, s.preferenceList[i].Address+":"+s.preferenceList[i].Port, key)
-			for k := 0; k < len(entryList); k++ {
-				log.Printf("%s\t", string(entryList[k].Value))
-			}
-			log.Println()
+			//log.Printf("Gossip Map for %s->%s, key %s is: ", s.selfNode.Address+":"+s.selfNode.Port, s.preferenceList[i].Address+":"+s.preferenceList[i].Port, key)
+			//for k := 0; k < len(entryList); k++ {
+			//	log.Printf("%s\t", string(entryList[k].Value))
+			//}
+			//log.Println()
 			batchArgs := BatchReplicateArgs{
 				EntryList: entryList,
 				Key:       key,
 			}
 			res := true
 			// res return false if the remote node crashes currently
-			log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate for key: %s...\n", s.preferenceList[i].Address+":"+s.preferenceList[i].Port, key)
+			//log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate for key: %s...\n", s.preferenceList[i].Address+":"+s.preferenceList[i].Port, key)
 			e = rpcConn.Call("MyDynamo.BatchReplicate", batchArgs, &res)
 			if e == nil {
 				toDeleteKey = append(toDeleteKey, key)
@@ -118,7 +118,7 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 		*result = false
 		return errors.New("server has crashed")
 	}
-	log.Println("---------------Put RPC received!---------------")
+	//log.Println("---------------Put RPC received!---------------")
 
 	var votes int = 1
 	forwardValue := value
@@ -175,27 +175,27 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 	// Maybe need set up goroutines here!
 	*result = false
 	gossipStoreIdx := make([]int, 0)
-	log.Printf("%d nodes in the preferenceList.\n", len(s.preferenceList))
+	//log.Printf("%d nodes in the preferenceList.\n", len(s.preferenceList))
 	for i := 0; i < len(s.preferenceList); i++ {
 		if i == 0 {
-			log.Println("---------------------------")
-			log.Println("Preparing to self-checking votes...")
+			//log.Println("---------------------------")
+			//log.Println("Preparing to self-checking votes...")
 			if votes >= s.wValue {
 				for j := i + 1; j < len(s.preferenceList); j++ {
 					gossipStoreIdx = append(gossipStoreIdx, j)
 				}
-				log.Println("Votes are over nWrite!")
+				//log.Println("Votes are over nWrite!")
 				break
 			}
 			continue
 		}
-		log.Println("---------------------------")
-		log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
+		//log.Println("---------------------------")
+		//log.Printf("Preparing to establish RPC Connection to %s", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		if e != nil {
 			continue
 		}
-		log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate...\n", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
+		//log.Printf("RPC to %s Connected! Preparing to call MyDynamo.Replicate...\n", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 
 		res := true
 		e = rpcConn.Call("MyDynamo.Replicate", forwardValue, &res)
@@ -212,7 +212,7 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 					if e != nil {
 						fmt.Println("CleanConnError", e)
 					}
-					log.Println("RPC Closed because votes are over nWrite!")
+					//log.Println("RPC Closed because votes are over nWrite!")
 				}
 				break
 			}
@@ -225,19 +225,19 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 			if e != nil {
 				fmt.Println("CleanConnError", e)
 			}
-			log.Println("RPC Closed!")
+			//log.Println("RPC Closed!")
 		}
 	}
 
-	log.Println("----------------------------------")
-	log.Println("Storing gossip map...")
+	//log.Println("----------------------------------")
+	//log.Println("Storing gossip map...")
 	// all nodes that weren't replicated to should be stored
 	// so that a future Gossip operation knows which nodes still need a copy of this data
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	log.Printf("The length of the gossipStoreIdx for %s is %d.\n", s.selfNode.Address+":"+s.selfNode.Port, len(gossipStoreIdx))
+	//log.Printf("The length of the gossipStoreIdx for %s is %d.\n", s.selfNode.Address+":"+s.selfNode.Port, len(gossipStoreIdx))
 	for _, idx := range gossipStoreIdx {
-		log.Printf("Storing idx: %d\n", idx)
+		//log.Printf("Storing idx: %d\n", idx)
 		gossipMap := s.futureGossip[idx]
 		putList, ok := gossipMap[forwardValue.Key]
 		if !ok {
@@ -273,8 +273,10 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 				gossipMap[forwardValue.Key] = newList
 			}
 		}
-		log.Printf("Storing idx: %d done.\n", idx)
+		//log.Printf("Storing idx: %d done.\n", idx)
 	}
+
+	*result = true
 
 	return nil
 }
@@ -330,7 +332,7 @@ func (s *DynamoServer) Replicate(value PutArgs, result *bool) error {
 	if *result {
 		//Assume all other nodes need this PutArgs
 		//Can be optimized!
-		log.Println("Begin storing gossipMap in Replicate RPC")
+		//log.Println("Begin storing gossipMap in Replicate RPC")
 		for i := 1; i < len(s.preferenceList); i++ {
 			gossipMap := s.futureGossip[i]
 			putList, ok := gossipMap[key]
@@ -368,7 +370,7 @@ func (s *DynamoServer) Replicate(value PutArgs, result *bool) error {
 				}
 			}
 		}
-		log.Println("Storing gossipMap in Replicate RPC done.")
+		//log.Println("Storing gossipMap in Replicate RPC done.")
 	}
 	s.mu.Unlock()
 
@@ -382,7 +384,7 @@ func (s *DynamoServer) BatchReplicate(value BatchReplicateArgs, result *bool) er
 		return errors.New("server has crashed")
 	}
 
-	log.Printf("Batch Replicate Recieved! Port: %s\n", s.selfNode.Address+":"+s.selfNode.Port)
+	//log.Printf("Batch Replicate Recieved! Port: %s\n", s.selfNode.Address+":"+s.selfNode.Port)
 
 	*result = true
 	key := value.Key
@@ -425,7 +427,7 @@ func (s *DynamoServer) BatchReplicate(value BatchReplicateArgs, result *bool) er
 		}
 	}
 
-	log.Printf("Gossip on %s done!\n", s.selfNode.Address+":"+s.selfNode.Port)
+	//log.Printf("Gossip on %s done!\n", s.selfNode.Address+":"+s.selfNode.Port)
 	s.mu.Unlock()
 	return nil
 }
@@ -521,6 +523,7 @@ func NewDynamoServer(w int, r int, hostAddr string, hostPort string, id string) 
 		Address: hostAddr,
 		Port:    hostPort,
 	}
+	mtx := &sync.Mutex{}
 	return DynamoServer{
 		wValue:         w,
 		rValue:         r,
@@ -530,12 +533,13 @@ func NewDynamoServer(w int, r int, hostAddr string, hostPort string, id string) 
 		isAlive:        true,
 		store:          make(map[string][]ObjectEntry),
 		futureGossip:   make([]map[string][]ObjectEntry, len(preferenceList)),
+		mu:             mtx,
 	}
 }
 
-func ServeDynamoServer(dynamoServer *DynamoServer, wg *sync.WaitGroup) error {
+func ServeDynamoServer(dynamoServer DynamoServer, wg *sync.WaitGroup) error {
 	rpcServer := rpc.NewServer()
-	e := rpcServer.RegisterName("MyDynamo", dynamoServer)
+	e := rpcServer.RegisterName("MyDynamo", &dynamoServer)
 	if e != nil {
 		log.Println(DYNAMO_SERVER, "Server Can't start During Name Registration")
 		return e
