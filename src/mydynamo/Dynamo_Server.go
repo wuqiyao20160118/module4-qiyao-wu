@@ -152,7 +152,7 @@ func (s *DynamoServer) Put(value PutArgs, result *bool) error {
 			length := len(removeIndex)
 			newEntryList := kvStore
 			for i := 0; i < length; i++ {
-				newEntryList = remove(kvStore, removeIndex[i]-i)
+				newEntryList = remove(newEntryList, removeIndex[i]-i)
 			}
 
 			ctxVectorClock.Clock.Increment(s.nodeID)
@@ -448,6 +448,10 @@ func (s *DynamoServer) Get(key string, result *DynamoResult) error {
 
 	// Attempt to read that value from R-1 other nodes
 	for i := 1; i < s.rValue; i++ {
+		if i > len(s.preferenceList) {
+			continue
+		}
+
 		rpcConn, e := rpc.DialHTTP("tcp", s.preferenceList[i].Address+":"+s.preferenceList[i].Port)
 		if e != nil {
 			continue
